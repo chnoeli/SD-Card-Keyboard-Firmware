@@ -1,33 +1,33 @@
-//Arduino 1.8.10
-//Pikatea SD card Firmware
+// Arduino 1.8.10
+// Pikatea SD card Firmware
 
-//libraries to include
+// libraries to include
 #include "HID-Project.h"
 #include <Encoder.h>
-#include <SPI.h>
-#include <SD.h>
 #include <Keypad.h>
+#include <SD.h>
+#include <SPI.h>
 
 #define PIKATEA_MACROPAD_GB2
 //#define PIKATEA_MACROPAD_AFSC
 
-//Constants
-//Pikatea GB2
+// Constants
+// Pikatea GB2
 #if defined(PIKATEA_MACROPAD_GB2)
 
-//the buttons
+// the buttons
 #define ROWS 1
 #define COLS 6
 #define BUTTON_AMOUNT 61
-char keys[ROWS][COLS] = {
-    {0, 1, 2, 3, 4, 5}};
-byte rowPins[ROWS] = {A0};                                              //connect to the row pinouts of the keypad // change to define
-byte colPins[COLS] = {7, 5, 9, 8, 6, 2};                                //connect to the column pinouts of the keypad //change to define
-Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS); //change to define
+char keys[ROWS][COLS] = {{0, 1, 2, 3, 4, 5}};
+byte rowPins[ROWS] = {A0}; // connect to the row pinouts of the keypad // change to define
+byte colPins[COLS] = {7, 5, 9, 8, 6, 2}; // connect to the column pinouts of the keypad //change to define
+Keypad keypad =
+    Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS); // change to define
 String buttonStrings[] = {"", "", "", "", "", "", "", "", "", "", "", ""};
 int fakeAnalogSliderValues[] = {1023, 1023, 1023, 1023, 1023, 1023};
 
-//the encoder
+// the encoder
 #define ENCODER_DO_NOT_USE_INTERRUPTS
 const int EncoderPinA[] = {4};
 const int EncoderPinB[] = {3};
@@ -37,22 +37,21 @@ int deejSensitivityConstant = 32;
 String knobStrings[][2] = {{"", ""}};
 #endif
 
-//desktop macropad
+// desktop macropad
 #if defined(PIKATEA_MACROPAD_AFSC)
-//the buttons
+// the buttons
 #define ROWS 2
 #define COLS 5
 #define BUTTON_AMOUNT 10
-char keys[ROWS][COLS] = {
-    {0, 1, 2, 3, 4},
-    {5, 6, 7, 8, 9}};
-byte rowPins[ROWS] = {A3, A0};                                          //connect to the row pinouts of the keypad // change to define
-byte colPins[COLS] = {9, 7, 8, 16, 2};                                  //connect to the column pinouts of the keypad //change to define
-Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS); //change to define
+char keys[ROWS][COLS] = {{0, 1, 2, 3, 4}, 
+                         {5, 6, 7, 8, 9}};
+byte rowPins[ROWS] = {A3, A0}; // connect to the row pinouts of the keypad // change to define
+byte colPins[COLS] = {9, 7, 8, 16, 2}; // connect to the column pinouts of the keypad //change to define
+Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS); // change to define
 String buttonStrings[] = {"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""};
 int fakeAnalogSliderValues[] = {1023, 1023, 1023, 1023, 1023, 1023};
 
-//the encoder
+// the encoder
 #define ENCODER_DO_NOT_USE_INTERRUPTS
 const int EncoderPinA[] = {4, 5};
 const int EncoderPinB[] = {3, 6};
@@ -62,13 +61,12 @@ int deejSensitivityConstant = 32;
 String knobStrings[][2] = {{"", ""}, {"", ""}};
 #endif
 
-//Variables that change
+// Variables that change
 
-//0 = standard - 1 = deej
+// 0 = standard - 1 = deej
 int mode = 0;
 
-void setup()
-{
+void setup() {
   Serial.begin(9600);
   //  while (!Serial) {
   //    ; // wait for serial port to connect.
@@ -76,7 +74,7 @@ void setup()
   delay(4000); // wait for serial port to connect.
   InitializeSDCard(false);
 
-  //setup keyboard and keypad
+  // setup keyboard and keypad
   Keyboard.begin();
   Mouse.begin();
   keypad.addEventListener(keypadEvent); // Add an event listener for this keypad
@@ -92,50 +90,41 @@ long position = 0;
 int currentButton = -1;
 boolean dj = false;
 
-void loop()
-{
+void loop() {
   char key = keypad.getKey();
   unsigned long currentMillis = millis();
   long newPosition = myEnc.read();
-  //Serial.println("main loop");
-  //encoder has turned
-  if (newPosition > oldPosition + encoderConstant)
-  {
+  // Serial.println("main loop");
+  // encoder has turned
+  if (newPosition > oldPosition + encoderConstant) {
     oldPosition = newPosition;
-    //standard mode
-    if (!dj)
-    {
+    // standard mode
+    if (!dj) {
       pressKeys(knobStrings[0][1], false);
       releaseKeys();
-      //deej mode
-    }
-    else
-    {
-      if (currentButton != -1)
-      {
-        fakeAnalogSliderValues[currentButton] = fakeAnalogSliderValues[currentButton] - deejSensitivityConstant;
-        //Serial.println("adjusting something else and reseting timmer");
+      // deej mode
+    } else {
+      if (currentButton != -1) {
+        fakeAnalogSliderValues[currentButton] =
+            fakeAnalogSliderValues[currentButton] - deejSensitivityConstant;
+        // Serial.println("adjusting something else and reseting timmer");
         deejPreviousMillis = currentMillis;
       }
     }
   }
-  if (newPosition < oldPosition - encoderConstant)
-  {
+  if (newPosition < oldPosition - encoderConstant) {
     oldPosition = newPosition;
 
-    //standard mode
-    if (!dj)
-    {
+    // standard mode
+    if (!dj) {
       pressKeys(knobStrings[0][0], false);
       releaseKeys();
-      //deej mode
-    }
-    else
-    {
-      if (currentButton != -1)
-      {
-        fakeAnalogSliderValues[currentButton] = fakeAnalogSliderValues[currentButton] + deejSensitivityConstant;
-        //Serial.println("adjusting something else and reseting timmer");
+      // deej mode
+    } else {
+      if (currentButton != -1) {
+        fakeAnalogSliderValues[currentButton] =
+            fakeAnalogSliderValues[currentButton] + deejSensitivityConstant;
+        // Serial.println("adjusting something else and reseting timmer");
         deejPreviousMillis = currentMillis;
       }
     }
@@ -143,21 +132,18 @@ void loop()
 }
 
 int holdFlag = 0;
-//when a button is pressed
-void keypadEvent(KeypadEvent key)
-{
-  switch (keypad.getState())
-  {
+// when a button is pressed
+void keypadEvent(KeypadEvent key) {
+  switch (keypad.getState()) {
   case PRESSED:
     dj = false;
     Serial.println(key);
     break;
 
   case RELEASED:
-    //if the button has not been held
-    if (holdFlag == 0)
-    {
-      //short press
+    // if the button has not been held
+    if (holdFlag == 0) {
+      // short press
       Serial.print("shortpress: ");
       Serial.println(buttonStrings[(int)key]);
       Keyboard.release(key);
@@ -173,27 +159,24 @@ void keypadEvent(KeypadEvent key)
     pressKeys(buttonStrings[((int)key) + BUTTON_AMOUNT], true);
     releaseKeys();
     holdFlag = 1;
-    //break;
+    // break;
   }
 }
 
-//Initialize the SD card and return 1 if successful
-//TODO - add support for making multiple attempts
-int InitializeSDCard(boolean makeMultipleAttempts)
-{
+// Initialize the SD card and return 1 if successful
+// TODO - add support for making multiple attempts
+int InitializeSDCard(boolean makeMultipleAttempts) {
 
   Serial.print(F("Initializing SD card..."));
-  if (!SD.begin(10))
-  {
+  if (!SD.begin(10)) {
     Serial.println(F("initialization failed!"));
-    if (!SD.begin(10))
-    {
+    if (!SD.begin(10)) {
       Serial.println(F("initialization failed!"));
     }
   }
   Serial.println(F("initialization done."));
   String FileName = F("config.txt");
-  //move this to different function
+  // move this to different function
 #if defined(PIKATEA_MACROPAD_GB2)
   knobStrings[0][0] = ConvertValuesToKeycodes(ExtractSetting(F("KnobCW="), FileName));
   knobStrings[0][1] = ConvertValuesToKeycodes(ExtractSetting(F("KnobCCW="), FileName));
@@ -237,66 +220,51 @@ int InitializeSDCard(boolean makeMultipleAttempts)
   buttonStrings[19] = ConvertValuesToKeycodes(ExtractSetting(F("KnobButton2Hold="), FileName));
 #endif
   deejSensitivityConstant = ExtractSettingWithDefault(F("deejSensitivity="), FileName, "32").toInt();
-
-  if (ExtractSetting(F("deejmode="), FileName).indexOf("rue") > 0 or ExtractSetting(F("deejMode = "), FileName).indexOf("rue") > 0)
-  {
-    //Serial.println("Deej mode Active");
+  if (ExtractSetting(F("deejmode="), FileName).indexOf("rue") > 0 or
+      ExtractSetting(F("deejMode = "), FileName).indexOf("rue") > 0) {
+    // Serial.println("Deej mode Active");
     mode = 1;
   }
   return 1;
 }
 
-String ExtractSetting(String setting, String fileName)
-{
+String ExtractSetting(String setting, String fileName) {
   return ExtractSettingWithDefault(setting, fileName, "");
 }
-String ExtractSettingWithDefault(String setting, String fileName, String defaultValue)
-{
+String ExtractSettingWithDefault(String setting, String fileName, String defaultValue) {
   String Temp = "";
   File configFile;
   configFile = SD.open(fileName);
-  if (configFile)
-  {
+  if (configFile) {
     //    Serial.print(F("found and opened the File "));
     //    Serial.println(fileName);
     char character;
     char previousCharacter = '\n';
-    while (configFile.available())
-    {
+    while (configFile.available()) {
       character = configFile.read();
-      //if comment
-      if (character == '/' && previousCharacter == '\n')
-      {
-        while (character != '\n')
-        {
+      // if comment
+      if (character == '/' && previousCharacter == '\n') {
+        while (character != '\n') {
           character = configFile.read();
         }
-      }
-      else
-      {        
-        if (character == '\n')
-        {
-          int Length = setting.length(); //length of the setting eg. button1=
-          if (Temp.lastIndexOf(setting) != -1)
-          { // if the setting is in the file
+      } else {
+        if (character == '\n') {
+          int Length = setting.length(); // length of the setting eg. button1=
+          if (Temp.lastIndexOf(setting) != -1) { // if the setting is in the file
             Serial.print(F("From: "));
             Serial.println(fileName + " - " + setting.substring(0, Length - 1) + ": " + Temp.substring(Temp.lastIndexOf(setting) + Length, Temp.indexOf('\n', Temp.lastIndexOf(setting) + Length)));
             configFile.close();
             return Temp.substring(Temp.lastIndexOf(setting) + Length, Temp.indexOf('\n', Temp.lastIndexOf(setting) + Length));
           }
           Temp = "";
-        }
-        else
-        {
+        } else {
           Temp.concat(character);
-        }        
+        }
         previousCharacter = character;
       }
     }
     Temp.concat('\n');
-  }
-  else
-  {
+  } else {
     Serial.print(F("Error opening the file"));
     Serial.println(fileName);
     return "File Error";
@@ -305,64 +273,53 @@ String ExtractSettingWithDefault(String setting, String fileName, String default
   return defaultValue;
 }
 
-String ConvertValuesToKeycodes(String given)
-{
+String ConvertValuesToKeycodes(String given) {
   given.trim();
-  if (given.length() == 0)
-  {
+  if (given.length() == 0) {
     return "";
   }
   String temp2 = "";
-  while (given.lastIndexOf("+") > -1)
-  {    
-    temp2.concat(ExtractSettingWithDefault(given.substring(0, given.indexOf("+")) + "=", "TMF.txt", "w(" + given.substring(0, given.indexOf("+")) + ")"));
+  while (given.lastIndexOf("+") > -1) {
+    temp2.concat(ExtractSettingWithDefault(given.substring(0, given.indexOf("+")) + "=", "TMF.txt","w(" + given.substring(0, given.indexOf("+")) + ")"));
     temp2.concat('+');
     given = given.substring(given.indexOf("+") + 1, given.length());
-  }  
+  }
   temp2.concat(ExtractSettingWithDefault(given + "=", "TMF.txt", "w(" + given + ")"));
-  
+
   return temp2;
 }
 
-void pressKey(String given, boolean addDelay)
-{
-  //if "w(khkjgldf whatever)" is found
-  if (given.indexOf(F("w")) >= 0)
-  {
-    //chop of the first 2 and last 1
+void pressKey(String given, boolean addDelay) {
+  // if "w(khkjgldf whatever)" is found
+  if (given.indexOf(F("w")) >= 0) {
+    // chop of the first 2 and last 1
     String temp = given.substring(2, given.length() - 1);
-    //print out a single char or write out a string
+    // print out a single char or write out a string
     char c[temp.length() + 1];
     temp.toCharArray(c, sizeof(c));
-    if (temp.length() == 1)
-    {
+    if (temp.length() == 1) {
       Keyboard.press(c[0]);
-    }
-    else
-    {
+    } else {
       Keyboard.print(c);
     }
-  }
-  else
-  {
+  } else if (given.toInt() > 1000) {
+    Consumer.write(ConsumerKeycode(given.toInt() - 1000));
+  } else {
     Keyboard.write(KeyboardKeycode(given.toInt()));
   }
 }
 
-void releaseKeys()
-{
+void releaseKeys() {
   //  Serial.println("release All");
   Keyboard.releaseAll();
 }
 
-void pressKeys(String given, boolean Delay)
-{
-  //Serial.println(given);
-  //todo remove temp = given;
+void pressKeys(String given, boolean Delay) {
+  // Serial.println(given);
+  // todo remove temp = given;
   String temp = given;
-  //if a "+" is found
-  while (temp.lastIndexOf("+") > -1)
-  {
+  // if a "+" is found
+  while (temp.lastIndexOf("+") > -1) {
     pressKey(temp.substring(0, temp.indexOf("+")), Delay);
     temp = temp.substring(temp.indexOf("+") + 1, temp.length());
   }
@@ -372,27 +329,21 @@ void pressKeys(String given, boolean Delay)
 unsigned long DJpreviousMillis = 0;
 String prevBuiltString = "";
 
-void sendSliderValues()
-{
-  if (mode == 1)
-  {
+void sendSliderValues() {
+  if (mode == 1) {
     String builtString = String("");
 
-    for (int i = 0; i < 5; i++)
-    {
+    for (int i = 0; i < 5; i++) {
       builtString += String((int)fakeAnalogSliderValues[i]);
 
-      if (i < 5 - 1)
-      {
+      if (i < 5 - 1) {
         builtString += String("|");
       }
     }
     unsigned long DJcurrentMillis = millis();
-    if (DJcurrentMillis - DJpreviousMillis > 10)
-    {
+    if (DJcurrentMillis - DJpreviousMillis > 10) {
       DJpreviousMillis = DJcurrentMillis;
-      if (builtString != prevBuiltString)
-      {
+      if (builtString != prevBuiltString) {
         Serial.println(builtString);
       }
       prevBuiltString = builtString;
@@ -400,16 +351,12 @@ void sendSliderValues()
   }
 }
 
-void correctSliderValues()
-{
-  for (int i = 0; i < 5; i++)
-  {
-    if (fakeAnalogSliderValues[i] < 0)
-    {
+void correctSliderValues() {
+  for (int i = 0; i < 5; i++) {
+    if (fakeAnalogSliderValues[i] < 0) {
       fakeAnalogSliderValues[i] = 0;
     }
-    if (fakeAnalogSliderValues[i] > 1023)
-    {
+    if (fakeAnalogSliderValues[i] > 1023) {
       fakeAnalogSliderValues[i] = 1023;
     }
   }
