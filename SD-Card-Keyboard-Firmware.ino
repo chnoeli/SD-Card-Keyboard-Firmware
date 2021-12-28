@@ -8,10 +8,12 @@
 #include <SD.h>
 #include <SPI.h>
 
+// Global defines
 #define PIKATEA_MACROPAD_GB2
 //#define PIKATEA_MACROPAD_AFSC
+#define CONFIG_FILE "config.txt"
+#define TMF_FILE "TMF.txt"
 
-// Constants
 // Pikatea GB2
 #if defined(PIKATEA_MACROPAD_GB2)
 
@@ -19,7 +21,7 @@
 // the buttons
 #define ROWS 1
 #define COLS 6
-#define BUTTON_AMOUNT 61
+#define BUTTON_AMOUNT 6
 char keys[ROWS][COLS] = {{0, 1, 2, 3, 4, 5}};
 byte rowPins[ROWS] = {A0};               // connect to the row pinouts of the keypad // change to define
 byte colPins[COLS] = {7, 5, 9, 8, 6, 2}; // connect to the column pinouts of the keypad //change to define
@@ -67,6 +69,9 @@ String knobStrings[][2] = {{"", ""}, {"", ""}};
 // 0 = standard - 1 = deej
 int mode = 0;
 
+// Function definitions
+String ExtractSettingWithDefault(String setting, String fileName, String defaultValue = "");
+
 void setup()
 {
     Serial.begin(9600);
@@ -74,13 +79,13 @@ void setup()
     //    ; // wait for serial port to connect.
     //  }
     delay(4000); // wait for serial port to connect.
-    InitializeSDCard(false);
+    InitializeSDCard();
 
     // setup keyboard and keypad
     Keyboard.begin();
     Mouse.begin();
     keypad.addEventListener(keypadEvent); // Add an event listener for this keypad
-    keypad.setHoldTime(5);
+    keypad.setHoldTime(500);
     pinMode(EncoderPinA[0], INPUT_PULLUP);
     pinMode(EncoderPinB[1], INPUT_PULLUP);
 }
@@ -97,7 +102,7 @@ void loop()
     char key = keypad.getKey();
     unsigned long currentMillis = millis();
     long newPosition = myEnc.read();
-    // Serial.println("main loop");
+
     // encoder has turned
     if (newPosition > oldPosition + encoderConstant)
     {
@@ -107,7 +112,6 @@ void loop()
         {
             pressKeys(knobStrings[0][1], false);
             releaseKeys();
-            // deej mode
         }
         else
         {
@@ -129,7 +133,6 @@ void loop()
         {
             pressKeys(knobStrings[0][0], false);
             releaseKeys();
-            // deej mode
         }
         else
         {
@@ -180,7 +183,7 @@ void keypadEvent(KeypadEvent key)
 }
 
 // Initialize the SD card and return 1 if successful
-int InitializeSDCard(boolean makeMultipleAttempts)
+int InitializeSDCard()
 {
 
     Serial.print(F("Initializing SD card..."));
@@ -190,72 +193,65 @@ int InitializeSDCard(boolean makeMultipleAttempts)
     }
     Serial.println(F("initialization done."));
 
-    String FileName = F("config.txt");
     // move this to different function
 #if defined(PIKATEA_MACROPAD_GB2)
-    knobStrings[0][0] = ConvertValuesToKeycodes(ExtractSetting(F("KnobCW="), FileName));
-    knobStrings[0][1] = ConvertValuesToKeycodes(ExtractSetting(F("KnobCCW="), FileName));
-    buttonStrings[0] = ConvertValuesToKeycodes(ExtractSetting(F("Button1="), FileName));
-    buttonStrings[1] = ConvertValuesToKeycodes(ExtractSetting(F("Button2="), FileName));
-    buttonStrings[2] = ConvertValuesToKeycodes(ExtractSetting(F("Button3="), FileName));
-    buttonStrings[3] = ConvertValuesToKeycodes(ExtractSetting(F("Button4="), FileName));
-    buttonStrings[4] = ConvertValuesToKeycodes(ExtractSetting(F("Button5="), FileName));
-    buttonStrings[5] = ConvertValuesToKeycodes(ExtractSetting(F("KnobButton="), FileName));
-    buttonStrings[6] = ConvertValuesToKeycodes(ExtractSetting(F("Button1Hold="), FileName));
-    buttonStrings[7] = ConvertValuesToKeycodes(ExtractSetting(F("Button2Hold="), FileName));
-    buttonStrings[8] = ConvertValuesToKeycodes(ExtractSetting(F("Button3Hold="), FileName));
-    buttonStrings[9] = ConvertValuesToKeycodes(ExtractSetting(F("Button4Hold="), FileName));
-    buttonStrings[10] = ConvertValuesToKeycodes(ExtractSetting(F("Button5Hold="), FileName));
-    buttonStrings[11] = ConvertValuesToKeycodes(ExtractSetting(F("KnobButtonHold="), FileName));
+    knobStrings[0][0] = getKeycodes(F("KnobCW="));
+    knobStrings[0][1] = getKeycodes(F("KnobCCW="));
+    buttonStrings[0] = getKeycodes(F("Button1="));
+    buttonStrings[1] = getKeycodes(F("Button2="));
+    buttonStrings[2] = getKeycodes(F("Button3="));
+    buttonStrings[3] = getKeycodes(F("Button4="));
+    buttonStrings[4] = getKeycodes(F("Button5="));
+    buttonStrings[5] = getKeycodes(F("KnobButton="));
+    buttonStrings[6] = getKeycodes(F("Button1Hold="));
+    buttonStrings[7] = getKeycodes(F("Button2Hold="));
+    buttonStrings[8] = getKeycodes(F("Button3Hold="));
+    buttonStrings[9] = getKeycodes(F("Button4Hold="));
+    buttonStrings[10] = getKeycodes(F("Button5Hold="));
+    buttonStrings[11] = getKeycodes(F("KnobButtonHold="));
 #endif
 #if defined(PIKATEA_MACROPAD_AFSC)
-    knobStrings[0][0] = ConvertValuesToKeycodes(ExtractSetting(F("Knob1CW="), FileName));
-    knobStrings[0][1] = ConvertValuesToKeycodes(ExtractSetting(F("Knob1CCW="), FileName));
-    knobStrings[1][0] = ConvertValuesToKeycodes(ExtractSetting(F("Knob2CW="), FileName));
-    knobStrings[1][1] = ConvertValuesToKeycodes(ExtractSetting(F("Knob2CCW="), FileName));
-    buttonStrings[0] = ConvertValuesToKeycodes(ExtractSetting(F("Button1="), FileName));
-    buttonStrings[1] = ConvertValuesToKeycodes(ExtractSetting(F("Button2="), FileName));
-    buttonStrings[2] = ConvertValuesToKeycodes(ExtractSetting(F("Button3="), FileName));
-    buttonStrings[3] = ConvertValuesToKeycodes(ExtractSetting(F("Button4="), FileName));
-    buttonStrings[4] = ConvertValuesToKeycodes(ExtractSetting(F("Button5="), FileName));
-    buttonStrings[5] = ConvertValuesToKeycodes(ExtractSetting(F("Button6="), FileName));
-    buttonStrings[6] = ConvertValuesToKeycodes(ExtractSetting(F("Button7="), FileName));
-    buttonStrings[7] = ConvertValuesToKeycodes(ExtractSetting(F("Button8="), FileName));
-    buttonStrings[8] = ConvertValuesToKeycodes(ExtractSetting(F("KnobButton1="), FileName));
-    buttonStrings[9] = ConvertValuesToKeycodes(ExtractSetting(F("KnobButton2="), FileName));
-    buttonStrings[10] = ConvertValuesToKeycodes(ExtractSetting(F("Button1Hold="), FileName));
-    buttonStrings[11] = ConvertValuesToKeycodes(ExtractSetting(F("Button2Hold="), FileName));
-    buttonStrings[12] = ConvertValuesToKeycodes(ExtractSetting(F("Button3Hold="), FileName));
-    buttonStrings[13] = ConvertValuesToKeycodes(ExtractSetting(F("Button4Hold="), FileName));
-    buttonStrings[14] = ConvertValuesToKeycodes(ExtractSetting(F("Button5Hold="), FileName));
-    buttonStrings[15] = ConvertValuesToKeycodes(ExtractSetting(F("Button3Hold="), FileName));
-    buttonStrings[16] = ConvertValuesToKeycodes(ExtractSetting(F("Button4Hold="), FileName));
-    buttonStrings[17] = ConvertValuesToKeycodes(ExtractSetting(F("Button5Hold="), FileName));
-    buttonStrings[18] = ConvertValuesToKeycodes(ExtractSetting(F("KnobButton1Hold="), FileName));
-    buttonStrings[19] = ConvertValuesToKeycodes(ExtractSetting(F("KnobButton2Hold="), FileName));
+    knobStrings[0][0] = getKeycodes(F("Knob1CW="));
+    knobStrings[0][1] = getKeycodes(F("Knob1CCW="));
+    knobStrings[1][0] = getKeycodes(F("Knob2CW="));
+    knobStrings[1][1] = getKeycodes(F("Knob2CCW="));
+    buttonStrings[0] = getKeycodes(F("Button1="));
+    buttonStrings[1] = getKeycodes(F("Button2="));
+    buttonStrings[2] = getKeycodes(F("Button3="));
+    buttonStrings[3] = getKeycodes(F("Button4="));
+    buttonStrings[4] = getKeycodes(F("Button5="));
+    buttonStrings[5] = getKeycodes(F("Button6="));
+    buttonStrings[6] = getKeycodes(F("Button7="));
+    buttonStrings[7] = getKeycodes(F("Button8="));
+    buttonStrings[8] = getKeycodes(F("KnobButton1="));
+    buttonStrings[9] = getKeycodes(F("KnobButton2="));
+    buttonStrings[10] = getKeycodes(F("Button1Hold="));
+    buttonStrings[11] = getKeycodes(F("Button2Hold="));
+    buttonStrings[12] = getKeycodes(F("Button3Hold="));
+    buttonStrings[13] = getKeycodes(F("Button4Hold="));
+    buttonStrings[14] = getKeycodes(F("Button5Hold="));
+    buttonStrings[15] = getKeycodes(F("Button3Hold="));
+    buttonStrings[16] = getKeycodes(F("Button4Hold="));
+    buttonStrings[17] = getKeycodes(F("Button5Hold="));
+    buttonStrings[18] = getKeycodes(F("KnobButton1Hold="));
+    buttonStrings[19] = getKeycodes(F("KnobButton2Hold="));
 #endif
-    deejSensitivityConstant = ExtractSettingWithDefault(F("deejSensitivity="), FileName, "32").toInt();
-    if (ExtractSetting(F("deejmode="), FileName).indexOf("rue") > 0 or
-        ExtractSetting(F("deejMode = "), FileName).indexOf("rue") > 0)
+    deejSensitivityConstant = getKeycodes(F("deejSensitivity=")) != "" ? getKeycodes(F("deejSensitivity=")).toInt() : 32;
+
+    if (getKeycodes(F("deejmode=")).indexOf("rue") > 0 or
+        getKeycodes(F("deejMode = ")).indexOf("rue") > 0)
     {
-        // Serial.println("Deej mode Active");
         mode = 1;
     }
-    return 1;
+    return true;
 }
 
-String ExtractSetting(String setting, String fileName)
-{
-    return ExtractSettingWithDefault(setting, fileName, "");
-}
-String ExtractSettingWithDefault(String setting, String fileName, String defaultValue)
+String ExtractSettingWithDefault(String setting, String fileName, String defaultValue = "")
 {
     File configFile;
     configFile = SD.open(fileName);
     if (configFile)
     {
-        //    Serial.print(F("found and opened the File "));
-        //    Serial.println(fileName);
         char character;
         char previousCharacter = '\n';
         while (configFile.available())
@@ -265,10 +261,11 @@ String ExtractSettingWithDefault(String setting, String fileName, String default
             if (!line.startsWith(F("//")) && line.length() > 1)
             {
                 String settingValue = line.startsWith(setting) ? line.substring(setting.length()) : "";
+                settingValue.trim();
                 if (settingValue != "")
                 {
                     Serial.print(F("From: "));
-                    Serial.println(fileName + F(" - ") + setting.substring(0, setting.length() + 1) + F(": ") + settingValue);
+                    Serial.println(fileName + F(" - ") + setting.substring(0, setting.length() + 1) + F(" : ") + settingValue);
                     configFile.close();
                     return settingValue;
                 }
@@ -285,23 +282,21 @@ String ExtractSettingWithDefault(String setting, String fileName, String default
     return defaultValue;
 }
 
-String ConvertValuesToKeycodes(String given)
+String getKeycodes(String setting)
 {
-    given.trim();
-    if (given.length() == 0)
+    String value = ExtractSettingWithDefault(setting, CONFIG_FILE);
+    if (value.length() > 0)
     {
-        return "";
+        String temp = "";
+        while (value.lastIndexOf("+") > -1)
+        {
+            temp.concat(ExtractSettingWithDefault(value.substring(0, value.indexOf("+")) + "=", TMF_FILE, "w(" + value.substring(0, value.indexOf("+")) + ")"));
+            temp.concat('+');
+            value = value.substring(value.indexOf("+") + 1, value.length());
+        }
+        temp.concat(ExtractSettingWithDefault(value + "=", TMF_FILE, "w(" + value + ")"));        
+        return temp;
     }
-    String temp2 = "";
-    while (given.lastIndexOf("+") > -1)
-    {
-        temp2.concat(ExtractSettingWithDefault(given.substring(0, given.indexOf("+")) + "=", "TMF.txt", "w(" + given.substring(0, given.indexOf("+")) + ")"));
-        temp2.concat('+');
-        given = given.substring(given.indexOf("+") + 1, given.length());
-    }
-    temp2.concat(ExtractSettingWithDefault(given + "=", "TMF.txt", "w(" + given + ")"));
-
-    return temp2;
 }
 
 void pressKey(String given, boolean addDelay)
