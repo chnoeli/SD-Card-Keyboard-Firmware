@@ -1,3 +1,7 @@
+//Special Action codes
+CSTM_NEXT_CONFIG=8011
+CSTM_PREVIOUS_CONFIG=8012
+//Keycodes
 KEY_A=4
 KEY_B=5
 KEY_C=6

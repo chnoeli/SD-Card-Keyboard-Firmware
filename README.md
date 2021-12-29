@@ -17,6 +17,21 @@ This README is underconstruction. To follow development, join the [Discord Serve
 5. When compiling, make sure Arduino Leonardo is selected
 6. That's it! If you have questions with the process don't hestiate to message in the #pikatea-firmware-dev chat on the discord
 
+## Setting up the Makropad with multiple config files
+
+1. Flash the Firmware to the macropad
+2. Create files on the SD card `config_0.txt` 0 is stating that it is the first config file `1` for the second `2` for the third etc. (Currently the limit is 255)
+3. Copy the `TMF.txt`
+    1. Make sure that `CSTM_NEXT_CONFIG` is configured to any button action
+    2. This button can then be used to rotate the config files when it reaches the last file it loads the `config_0.txt` file.
+    3. The `CSTM_PREVIOUS_CONFIG` is not yet working properly as when you hit 0 and hit it it will not wrap to the highest file (WIP)
+4. Insert the SD card
+5. Start using the Macropad :)
+
+### Important infromation
+When there is no SD and the config file is changed it will be stuck in a loop until a SD card is loaded.
+
+
 ## TODO List
 
 -   get deej working with AFSC Desktop Macropad
